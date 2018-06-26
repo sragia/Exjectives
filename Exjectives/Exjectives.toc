@@ -1,0 +1,12 @@
+## Interface: 70300
+## Title: Exjectives
+## Notes: Objective Frame Replacement
+## Author: Exality
+## SavedVariables: ExjectivesDB
+## Version: @project-version@
+
+init.lua
+util.lua
+core.lua
+config.lua
+Modules\modules.xml
