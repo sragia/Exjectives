@@ -42,27 +42,29 @@ end
 local questObjects = {}
 
 local function CreateQuestObjectFrame()
-  local questFrame = CreateFrame("Frame")
+  local questFrame = CreateFrame("Button")
   questFrame.free = true
   -- TEST --
-  E.ApplyBackdropStyle(questFrame,{
-    height = 500, -- height of the whole frame
-    width = 250,  -- width of the whole frame
-    backdrop = {
-      bgFile   = [[Interface\Buttons\WHITE8X8]],
-      edgeFile = [[Interface\Buttons\WHITE8X8]],
-      edgeSize = 1,
-    },
-    backdropColor = { r = 1, g = 0, b = 0, a = .3},
-    backdropBorderColor = { r = 1, g = 0, b = 0, a = .7},
-  })
+  if E.debug.enabled then
+    E.ApplyBackdropStyle(questFrame,{
+      height = 500, -- height of the whole frame
+      width = 250,  -- width of the whole frame
+      backdrop = {
+        bgFile   = [[Interface\Buttons\WHITE8X8]],
+        edgeFile = [[Interface\Buttons\WHITE8X8]],
+        edgeSize = 1,
+      },
+      backdropColor = { r = 1, g = 0, b = 0, a = .3},
+      backdropBorderColor = { r = 1, g = 0, b = 0, a = .7},
+    })
+  end
   -- TEST --
   tinsert(questObjects,questFrame)
   -- Quest Title --
   local questTitle = questFrame:CreateFontString(nil, "OVERLAY")
   questFrame.title = questTitle
   E.SetFont(questTitle,"questTitle")
-  questTitle:SetPoint("TOPLEFT", questFrame,5,-5)
+  questTitle:SetPoint("TOPLEFT", questFrame,5,-2)
   -- Quest Objectives --
   questFrame.objectiveFrames = {}
   questFrame.activeFrames = {}
@@ -71,23 +73,26 @@ local function CreateQuestObjectFrame()
     objectiveContainer.free = true
     tinsert(questFrame.objectiveFrames,objectiveContainer)
     -- TEST --
-    E.ApplyBackdropStyle(objectiveContainer,{
-    height = 500, -- height of the whole frame
-    width = 250,  -- width of the whole frame
-    backdrop = {
-      bgFile   = [[Interface\Buttons\WHITE8X8]],
-      edgeFile = [[Interface\Buttons\WHITE8X8]],
-      edgeSize = 1,
-    },
-    backdropColor = { r = 1, g = 1, b = 0, a = .3},
-    backdropBorderColor = { r = 1, g = 1, b = 0, a = .7},
-    })
+    if E.debug.enabled then
+      E.ApplyBackdropStyle(objectiveContainer,{
+      height = 500, -- height of the whole frame
+      width = 250,  -- width of the whole frame
+      backdrop = {
+        bgFile   = [[Interface\Buttons\WHITE8X8]],
+        edgeFile = [[Interface\Buttons\WHITE8X8]],
+        edgeSize = 1,
+      },
+      backdropColor = { r = 1, g = 1, b = 0, a = .3},
+      backdropBorderColor = { r = 1, g = 1, b = 0, a = .7},
+      })
+    end
     -- TEST --
     -- Objective Text --
     local objective = objectiveContainer:CreateFontString(nil, "OVERLAY")
     objectiveContainer.text = objective
     E.SetFont(objective,"objectives")
     objective:SetWidth(0)
+    objective:SetJustifyH("LEFT")
     objective:SetPoint("LEFT",objectiveContainer,5,0)
     -- Completed Icon --
     local completedIcon = CreateFrame("Frame",nil,self)
@@ -119,14 +124,17 @@ local function CreateQuestObjectFrame()
     frame.objectIndx = data.objectIndx
     if #self.activeFrames <= 0 then 
       -- first
-      frame:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 10, -5)
+      frame:SetPoint("TOPLEFT", self.title, "BOTTOMLEFT", 10, -3)
     else
-      frame:SetPoint("TOPLEFT", self.activeFrames[#self.activeFrames], "BOTTOMLEFT", 0, -5)
+      frame:SetPoint("TOPLEFT", self.activeFrames[#self.activeFrames], "BOTTOMLEFT", 0, -2)
     end
     frame:SetText(data.text)
     if data.completed then
+      E.SetFont(frame.text,"objectivesCompleted")
+      frame.isCompleted = true
       frame.completed:Show()
     else
+      frame.isCompleted = false
       frame.completed:Hide()
     end
     tinsert(self.activeFrames,frame)
@@ -144,16 +152,40 @@ local function CreateQuestObjectFrame()
     else
       frame:SetText(data.text)
       if data.completed then
+        E.SetFont(frame.text,"objectivesCompleted")
         frame.completed:Show()
       else
         frame.completed:Hide()
       end
     end
+    frame.text:SetWidth(self:GetParent():GetWidth()-40)
     -- Setup Size
     local width,height = frame.text:GetSize()
     width = width + 18
     frame:SetSize(width,height)
   end
+  -- Events --
+  questFrame:SetScript("OnEnter",function(self)
+    for _,aframe in ipairs(self.activeFrames) do
+      if aframe.isCompleted then
+        E.SetFont(aframe.text,"objectivesCompletedHighlight")
+      else
+        E.SetFont(aframe.text,"objectivesHighlight")
+      end
+    end
+    E.SetFont(self.title,"questTitleHighlight")
+  end)
+  questFrame:SetScript("OnLeave",function(self)
+    for _,aframe in ipairs(self.activeFrames) do
+      if aframe.isCompleted then
+        E.SetFont(aframe.text,"objectivesCompleted")
+      else
+        E.SetFont(aframe.text,"objectives")
+      end
+    end
+    E.SetFont(self.title,"questTitle")
+  end)
+  --
   function questFrame:ClearData()
     self.data = nil
     -- TODO
@@ -161,16 +193,19 @@ local function CreateQuestObjectFrame()
   function questFrame:Refresh()
     local data = self.data
     local height = 0
+    self:SetScript("OnClick",function(self,button)
+      QuestMapFrame_OpenToQuestDetails(data.questId)
+    end)
     self.title:SetText(data.title)
     height = self.title:GetHeight() + 5 
     for _,obj in ipairs(data.objectives) do
       self:RefreshObjective(obj)
     end
     for _,oframe in ipairs(self.activeFrames) do
-      height = height + oframe:GetHeight() + 5
+      height = height + oframe:GetHeight() + 2
     end
     self.height = height
-    self:SetSize(self:GetParent():GetWidth()-10, self.height+10)
+    self:SetSize(self:GetParent():GetWidth()-5, self.height+2)
   end
   -- 
   return questFrame
@@ -210,14 +245,26 @@ local questContainer = {}
 local function CreateQuestContainer()
   local f = CreateFrame("Frame")
   f:SetClipsChildren(true)
+  if E.debug.enabled then
+    E.ApplyBackdropStyle(f,{
+      height = 500, -- height of the whole frame
+      width = 250,  -- width of the whole frame
+      backdrop = {
+        bgFile   = [[Interface\Buttons\WHITE8X8]],
+        edgeFile = [[Interface\Buttons\WHITE8X8]],
+        edgeSize = 1,
+      },
+      backdropColor = { r = 0, g = 1, b = 1, a = .3},
+      backdropBorderColor = { r = 0, g = 1, b = 1, a = .7},
+      })
+  end
   f.free = true
-  f.height = 20
+  f.height = 16
   f.children = {}
-  E.ApplyBackdropStyle(f)
   tinsert(questContainer,f)
   -- hacky, tbd if works
   function f:Collapse()
-    self:SetHeight(20)
+    self:SetHeight(16)
     local parent = self:GetParent()
     if parent.SetCalculateHeight then
       self:GetParent():SetCalculateHeight()
@@ -236,14 +283,17 @@ local function CreateQuestContainer()
   btn.collapsed = false
   btn:SetSize(10,10)
   local btnTex = E.CreateTexture(btn,[[Interface\AddOns\Exjectives\Media\collapse.tga]])
+  btn.texture = btnTex
   btnTex:SetAllPoints()
-  btn:SetPoint("TOPLEFT", f, 0, -5)
+  btn:SetPoint("TOPLEFT", f, 0, -3)
   btn:SetScript("OnClick",function(self)
     if self.collapsed then
       f:Expand(f.height)
+      self.texture:SetTexture([[Interface\AddOns\Exjectives\Media\collapse.tga]])
       self.collapsed = false
     else
       f:Collapse()
+      self.texture:SetTexture([[Interface\AddOns\Exjectives\Media\expand.tga]])
       self.collapsed = true
     end
   end)
@@ -255,9 +305,13 @@ local function CreateQuestContainer()
   fs:SetPoint("LEFT",btn,"RIGHT",3,0)
   -- FUNCTION --
   function f:AddChildren(frame)
-    local lastChildren = self.children[#self.children] or self.btn
+    local lastChildren = self.children[#self.children]
+    if not lastChildren then
+      frame:SetPoint("TOPLEFT", self.btn, "BOTTOMLEFT", 0, -3)
+    else
+      frame:SetPoint("TOPLEFT", lastChildren, "BOTTOMLEFT", 0, 0)
+    end
     tinsert(self.children,frame)
-    frame:SetPoint("TOPLEFT", lastChildren, "BOTTOMLEFT", 0, -2)
   end
   function f:Clear()
     for i=#self.children, 1 do
@@ -269,11 +323,11 @@ local function CreateQuestContainer()
     self.btn.collapsed = false
   end
   function f:SetCalculateHeight()
-    self.height = 20
+    self.height = self.title:GetHeight() + 4
     for _,frame in ipairs(self.children) do
       self.height = self.height + frame:GetHeight()
     end  
-    self:SetSize(self:GetParent():GetWidth()-10,self.height) 
+    self:SetSize(self:GetParent():GetWidth()-5,self.height) 
   end
   return f
 end
@@ -293,6 +347,6 @@ end
 function E.GetQuestContainer(parent)
   local f = GetQuestContainer()
   f:SetParent(parent)
-  f:SetWidth(parent:GetWidth()-10)
+  f:SetWidth(parent:GetWidth()-5)
   return f
 end

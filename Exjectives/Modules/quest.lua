@@ -62,7 +62,6 @@ local function DrawQuests(questData)
   ViragDevTool_AddData(questData)
   if questData[0] then
     for _,questInfo in ipairs(questData[0].quests) do
-      print('adding',questInfo.title)
       local questObj = E.GetQuestObject(f,questInfo)
       --questObj:SetPoint("TOPRIGHT")
       f:AddChildren(questObj)
@@ -71,7 +70,6 @@ local function DrawQuests(questData)
   end
   for i,header in ipairs(questData) do
     if header.questCount > 0 then
-      print('adding header',header.title)
       local containerObj = E.GetQuestContainer(f)
       containerObj.title:SetText(header.title)
       --containerObj:SetCalculateHeight()
@@ -108,7 +106,7 @@ local function EnteredWorld()
         questCount = 0,
       }
       index = index + 1
-    elseif not isBounty or not isHidden then
+    elseif not isBounty and not isHidden and not isTask then
       local header = lastHeader or 0
       local numObjectives = GetNumQuestLeaderBoards(questLogIndex)
       local questInfo = {title = title, objectives = {}, questId = questID}
